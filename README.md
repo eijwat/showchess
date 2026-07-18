@@ -1,5 +1,7 @@
 <img src="sc.png" alt="画像" width="300">
 
+[Show Chess](https://eijwat.github.io/showchess/)
+
 # ShowChess Game
 
 Are they stronger at Shogi? Or at chess? Which soldiers are stronger?
