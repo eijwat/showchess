@@ -13,3 +13,5 @@ Shogi-origin pieces may promote in the far three ranks; promoted pieces revert w
 取った駒は取った側の持ち駒になり、その駒の動きのまま自軍として打てます（クレイジーハウス方式）。二歩（歩のみ）、行き所のない駒、打ち歩詰め・打ちポーン詰めは禁止。チェスポーンは自陣最下段と敵陣最終段には打てません。
 
 将棋出身の駒は敵陣3段で成れます（成駒は取られると元に戻る）。チェスポーンは最終段で任意のチェス駒に昇格し、取られるとポーンに戻ります。ステイルメイトは手番側の負け。玉／キングを詰ませたら勝ちです。
+
+[Show Chess](https://eijwat.github.io/showchess/)
