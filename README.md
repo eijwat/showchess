@@ -6,7 +6,9 @@ Captured pieces join the captor’s hand and can be dropped onto any empty squar
 
 Shogi-origin pieces may promote in the far three ranks; promoted pieces revert when captured. A chess pawn promotes on the final rank to any chess piece and reverts to a pawn when captured. Stalemate is a loss for the player to move. Checkmate the enemy king to win. Shogi piece letters: P pawn, L lance, N knight, S silver, G gold, K king, B bishop, R rook; a red + marks a promoted piece.
 
-# ショーチェス
+# ショーチェス ボードゲーム
+
+将棋が強いのか！？チェスが強いのか！？
 
 9×9盤で将棋軍とチェス軍が対戦します（将棋側が先手）。各駒は本来の動きのまま。チェスポーンの初動2マス・アンパッサン・キャスリングも有効です。
 
