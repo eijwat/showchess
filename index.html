@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ショーチェス ShoChess | 将棋 vs チェス</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#211d15; --paper:#efe6d2; --panel:#2b2620; --panel2:#352f27;
+    --board:#e7d2a2; --zone:#dcc28b; --line:#8b6b3e;
+    --cream:#f8efd9; --slate:#25303f; --slate-bg:#d9dfe9;
+    --amber:#8a3b12; --red:#bf3a2b; --hint:#3d7a4e; --gold:#c99a3d;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:var(--ink); color:var(--paper);
+    font-family:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN",sans-serif;
+    min-height:100vh; display:flex; flex-direction:column; align-items:center;
+    padding:18px 12px 40px;
+  }
+  header{width:min(94vw,560px); display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:6px; flex-wrap:wrap;}
+  h1{font-family:"Shippori Mincho",serif; font-weight:700; font-size:26px; letter-spacing:.14em;}
+  h1 small{font-size:12px; letter-spacing:.08em; color:#bfae8d; margin-left:10px; font-weight:500;}
+  .controls{display:flex; gap:8px;}
+  button{font-family:inherit; cursor:pointer;}
+  .btn{
+    background:var(--panel2); color:var(--paper); border:1px solid #55493a;
+    border-radius:8px; padding:7px 14px; font-size:13px;
+  }
+  .btn:hover:not(:disabled){background:#43392d;}
+  .btn:disabled{opacity:.4; cursor:default;}
+  .btn:focus-visible,.chip:focus-visible,.cell:focus-visible{outline:2px solid var(--gold); outline-offset:2px;}
+  .statusbar{
+    width:min(94vw,560px); display:flex; align-items:center; gap:10px;
+    background:var(--panel); border:1px solid #453b2e; border-radius:10px;
+    padding:8px 14px; margin:8px 0; font-size:14px;
+  }
+  .turnmark{font-size:16px;}
+  .badge{
+    background:var(--red); color:#fff; font-size:12px; font-weight:500;
+    border-radius:999px; padding:2px 10px; display:none;
+  }
+  .badge.on{display:inline-block; animation:pulse 1s ease-in-out infinite;}
+  @keyframes pulse{50%{opacity:.65;}}
+  @media (prefers-reduced-motion: reduce){.badge.on{animation:none;}}
+  .plies{margin-left:auto; color:#bfae8d; font-size:12px;}
+  .tray{
+    width:min(94vw,560px); background:var(--panel); border:1px solid #453b2e;
+    border-radius:10px; padding:6px 10px; display:flex; align-items:center; gap:8px;
+    min-height:52px; flex-wrap:wrap; margin:5px 0;
+  }
+  .tray .label{font-size:11px; color:#bfae8d; letter-spacing:.1em; margin-right:4px; white-space:nowrap;}
+  .tray .empty{font-size:12px; color:#6f6350;}
+  .chip{
+    display:flex; align-items:center; gap:5px; background:var(--panel2);
+    border:1px solid #55493a; border-radius:8px; padding:4px 9px; font-size:14px;
+    color:var(--paper);
+  }
+  .chip.mine{border-color:var(--gold);}
+  .chip.sel{background:var(--gold); color:var(--ink); border-color:var(--gold);}
+  .chip:disabled{cursor:default; opacity:.75;}
+  .chip .cnt{font-size:11px; color:#bfae8d;}
+  .chip.sel .cnt{color:var(--ink);}
+  .boardwrap{position:relative; width:min(94vw,560px);}
+  .board{
+    display:grid; grid-template-columns:repeat(9,1fr); width:100%;
+    border:3px solid var(--line); border-radius:4px; overflow:hidden;
+    container-type:inline-size; background:var(--board);
+  }
+  .cell{
+    aspect-ratio:1; position:relative; border:0.5px solid var(--line);
+    background:var(--board); display:flex; align-items:center; justify-content:center;
+    padding:0;
+  }
+  .cell.zone{background:var(--zone);}
+  .cell.last{box-shadow:inset 0 0 0 100vmax rgba(201,154,61,.30);}
+  .cell.sel{box-shadow:inset 0 0 0 3px var(--gold);}
+  .cell.hint::after{
+    content:""; position:absolute; width:26%; height:26%; border-radius:50%;
+    background:var(--hint); opacity:.75;
+  }
+  .cell.cap{box-shadow:inset 0 0 0 3px var(--hint);}
+  .glyph{font-size:8.4cqw; line-height:1;}
+  .glyph.oc{color:var(--slate);}
+  .glyph.os{color:var(--amber);}
+  .wedge{
+    width:76%; height:82%;
+    clip-path:polygon(50% 0%, 81% 17%, 93% 100%, 7% 100%, 19% 17%);
+    background:var(--cream); display:flex; align-items:center; justify-content:center;
+    padding-top:8%;
+  }
+  .wedge.oc{transform:rotate(180deg); background:var(--slate-bg);}
+  .kanji{
+    font-family:"Shippori Mincho",serif; font-weight:700; font-size:5.2cqw;
+    color:#2b2117; line-height:1;
+  }
+  .kanji.lt{font-size:4.6cqw; letter-spacing:.02em;}
+  .kanji.pro{color:var(--red);}
+  .minipiece{font-size:16px;}
+  .miniwedge{
+    display:inline-flex; width:18px; height:20px; align-items:center; justify-content:center;
+    clip-path:polygon(50% 0%, 81% 17%, 93% 100%, 7% 100%, 19% 17%);
+    background:var(--cream); font-family:"Shippori Mincho",serif; font-weight:700;
+    font-size:11px; color:#2b2117; padding-top:3px;
+  }
+  .overlay{
+    position:absolute; inset:0; background:rgba(20,17,12,.72); z-index:5;
+    display:none; align-items:center; justify-content:center; border-radius:4px;
+  }
+  .overlay.on{display:flex;}
+  .dialog{
+    background:var(--panel); border:1px solid #6b5c46; border-radius:12px;
+    padding:20px 24px; text-align:center; max-width:86%;
+  }
+  .dialog .q{font-family:"Shippori Mincho",serif; font-size:17px; margin-bottom:14px;}
+  .dialog .opts{display:flex; gap:10px; justify-content:center; flex-wrap:wrap;}
+  .dialog .opt{
+    background:var(--panel2); border:1px solid #6b5c46; color:var(--paper);
+    border-radius:10px; padding:10px 16px; font-size:15px; min-width:64px;
+  }
+  .dialog .opt:hover{background:#4a3f31; border-color:var(--gold);}
+  .dialog .opt .big{font-size:26px; display:block; line-height:1.1;}
+  .dialog .result-title{font-size:22px; letter-spacing:.1em;}
+  .dialog .result-sub{color:#bfae8d; font-size:13px; margin:8px 0 14px;}
+  details.rules{width:min(94vw,560px); margin-top:14px; font-size:13px; color:#cfc2a8;}
+  details.rules summary{cursor:pointer; color:#bfae8d; font-size:13px; padding:4px 0;}
+  details.rules p{margin:7px 0; line-height:1.8;}
+  .legend{width:min(94vw,560px); display:flex; gap:16px; font-size:11.5px; color:#9d8f74; margin-top:8px; flex-wrap:wrap;}
+  .legend span{display:inline-flex; align-items:center; gap:5px;}
+  .dot{width:10px; height:10px; border-radius:50%; display:inline-block;}
+</style>
+</head>
+<body>
+<header>
+  <h1><span id="titleText">ショーチェス</span><small id="subTitle">将棋 × チェス</small></h1>
+  <div class="controls">
+    <button class="btn" id="langBtn">English</button>
+    <button class="btn" id="undoBtn">待った</button>
+    <button class="btn" id="resetBtn">初めから</button>
+  </div>
+</header>
+
+<div class="statusbar">
+  <span class="turnmark" id="turnMark">▲</span>
+  <span id="turnText"></span>
+  <span class="badge" id="checkBadge"></span>
+  <span class="plies" id="plyText"></span>
+</div>
+
+<div class="tray" id="trayC"></div>
+
+<div class="boardwrap">
+  <div class="board" id="board"></div>
+  <div class="overlay" id="overlay"><div class="dialog" id="dialog"></div></div>
+</div>
+
+<div class="tray" id="trayS"></div>
+
+<div class="legend">
+  <span><span class="dot" style="background:var(--slate)"></span><span id="legend1"></span></span>
+  <span><span class="dot" style="background:var(--amber)"></span><span id="legend2"></span></span>
+  <span><span class="dot" style="background:var(--zone)"></span><span id="legend3"></span></span>
+</div>
+
+<details class="rules">
+  <summary id="rulesSummary"></summary>
+  <p id="rules1"></p>
+  <p id="rules2"></p>
+  <p id="rules3"></p>
+</details>
+
+<script>
+// ショーチェス core logic (DOM-free)
+// owners: 'c' = chess side (top, moves down, dir +1), 's' = shogi side (bottom, dir -1)
+// piece: {t, o, p(promoted), moved, fromPawn}
+
+const LAST = { c: 8, s: 0 };          // final rank for each owner
+const START_PAWN = { c: 1, s: 7 };    // chess-pawn double-step rank per owner
+const BACK = { c: 0, s: 8 };          // owner's own back rank
+const SHOGI_PROMOTABLE = ['FU', 'KY', 'KE', 'GI', 'KA', 'HI'];
+
+function inb(r, c) { return r >= 0 && r < 9 && c >= 0 && c < 9; }
+function opp(o) { return o === 'c' ? 's' : 'c'; }
+function dirOf(o) { return o === 'c' ? 1 : -1; }
+function inZone(o, r) { return o === 'c' ? r >= 6 : r <= 2; }
+
+function initState() {
+  const b = Array.from({ length: 9 }, () => Array(9).fill(null));
+  const put = (r, c, t, o) => { b[r][c] = { t, o, p: false, moved: false, fromPawn: false }; };
+  ['CR', 'CN', 'CB', 'CQ', 'CK', 'CB', 'CN', 'CN', 'CR'].forEach((t, i) => put(0, i, t, 'c'));
+  for (let i = 0; i < 9; i++) put(1, i, 'CP', 'c');
+  for (let i = 0; i < 9; i++) put(6, i, 'FU', 's');
+  put(7, 1, 'KA', 's'); put(7, 7, 'HI', 's');
+  ['KY', 'KE', 'GI', 'KI', 'OU', 'KI', 'GI', 'KE', 'KY'].forEach((t, i) => put(8, i, t, 's'));
+  return { board: b, hands: { c: {}, s: {} }, turn: 's', ep: null, result: null, lastMove: null };
+}
+
+function pieceMoves(st, r, c, forAttack) {
+  const b = st.board, pc = b[r][c], o = pc.o, d = dirOf(o), res = [];
+  const push = (r2, c2, extra) => { res.push(Object.assign({ r, c, r2, c2 }, extra || {})); };
+  const step = (dr, dc) => {
+    const r2 = r + dr, c2 = c + dc;
+    if (!inb(r2, c2)) return;
+    const t = b[r2][c2];
+    if (!t || t.o !== o) push(r2, c2);
+  };
+  const slide = (dr, dc) => {
+    let r2 = r + dr, c2 = c + dc;
+    while (inb(r2, c2)) {
+      const t = b[r2][c2];
+      if (!t) { push(r2, c2); } else { if (t.o !== o) push(r2, c2); break; }
+      r2 += dr; c2 += dc;
+    }
+  };
+  const gold = () => [[d, 0], [d, 1], [d, -1], [0, 1], [0, -1], [-d, 0]].forEach(v => step(v[0], v[1]));
+  const kingSteps = () => { for (let a = -1; a <= 1; a++) for (let e = -1; e <= 1; e++) if (a || e) step(a, e); };
+  const diag = () => [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(v => slide(v[0], v[1]));
+  const orth = () => [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(v => slide(v[0], v[1]));
+
+  if (pc.p) {
+    if (pc.t === 'FU' || pc.t === 'KY' || pc.t === 'KE' || pc.t === 'GI') { gold(); return res; }
+    if (pc.t === 'KA') { diag(); [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(v => step(v[0], v[1])); return res; }
+    if (pc.t === 'HI') { orth(); [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(v => step(v[0], v[1])); return res; }
+  }
+  switch (pc.t) {
+    case 'FU': step(d, 0); break;
+    case 'KY': slide(d, 0); break;
+    case 'KE': step(2 * d, 1); step(2 * d, -1); break;
+    case 'GI': [[d, 0], [d, 1], [d, -1], [-d, 1], [-d, -1]].forEach(v => step(v[0], v[1])); break;
+    case 'KI': gold(); break;
+    case 'OU': kingSteps(); break;
+    case 'CK': kingSteps(); if (!forAttack) castleMoves(st, r, c, res); break;
+    case 'CQ': diag(); orth(); break;
+    case 'CR': orth(); break;
+    case 'CB': diag(); break;
+    case 'CN': [[2, 1], [2, -1], [-2, 1], [-2, -1], [1, 2], [1, -2], [-1, 2], [-1, -2]].forEach(v => step(v[0], v[1])); break;
+    case 'HI': orth(); break;
+    case 'KA': diag(); break;
+    case 'CP': {
+      for (const dc of [1, -1]) {
+        const r2 = r + d, c2 = c + dc;
+        if (!inb(r2, c2)) continue;
+        const tt = b[r2][c2];
+        if (forAttack) { push(r2, c2); }
+        else if (tt && tt.o !== o) { push(r2, c2); }
+        else if (!tt && st.ep && st.ep.r === r2 && st.ep.c === c2 && st.ep.o !== o) { push(r2, c2, { ep: true }); }
+      }
+      if (!forAttack) {
+        const r1 = r + d;
+        if (inb(r1, c) && !b[r1][c]) {
+          push(r1, c);
+          const r2b = r + 2 * d;
+          if (r === START_PAWN[o] && inb(r2b, c) && !b[r2b][c]) push(r2b, c, { dbl: true });
+        }
+      }
+      break;
+    }
+  }
+  return res;
+}
+
+function castleMoves(st, r, c, res) {
+  const pc = st.board[r][c];
+  if (pc.moved || pc.o !== 'c' || r !== 0 || c !== 4) return;
+  if (attacked(st, 's', 0, 4)) return;
+  const rr = st.board[0][8];
+  if (rr && rr.t === 'CR' && rr.o === 'c' && !rr.moved &&
+      !st.board[0][5] && !st.board[0][6] && !st.board[0][7] &&
+      !attacked(st, 's', 0, 5) && !attacked(st, 's', 0, 6)) {
+    res.push({ r, c, r2: 0, c2: 6, castle: 'r' });
+  }
+  const rl = st.board[0][0];
+  if (rl && rl.t === 'CR' && rl.o === 'c' && !rl.moved &&
+      !st.board[0][1] && !st.board[0][2] && !st.board[0][3] &&
+      !attacked(st, 's', 0, 3) && !attacked(st, 's', 0, 2)) {
+    res.push({ r, c, r2: 0, c2: 2, castle: 'l' });
+  }
+}
+
+function attacked(st, by, r, c) {
+  for (let rr = 0; rr < 9; rr++) for (let cc = 0; cc < 9; cc++) {
+    const p = st.board[rr][cc];
+    if (!p || p.o !== by) continue;
+    const ms = pieceMoves(st, rr, cc, true);
+    for (const m of ms) if (m.r2 === r && m.c2 === c) return true;
+  }
+  return false;
+}
+
+function findKing(st, o) {
+  const kt = o === 'c' ? 'CK' : 'OU';
+  for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) {
+    const p = st.board[r][c];
+    if (p && p.o === o && p.t === kt) return { r, c };
+  }
+  return null;
+}
+
+function inCheck(st, o) {
+  const k = findKing(st, o);
+  return !!k && attacked(st, opp(o), k.r, k.c);
+}
+
+function clone(st) { return JSON.parse(JSON.stringify(st)); }
+
+function apply(st, mv) {
+  const s = clone(st);
+  s.ep = null;
+  if (mv.drop) {
+    s.board[mv.r2][mv.c2] = { t: mv.piece, o: st.turn, p: false, moved: true, fromPawn: false };
+    s.hands[st.turn][mv.piece]--;
+    if (s.hands[st.turn][mv.piece] <= 0) delete s.hands[st.turn][mv.piece];
+  } else {
+    const pc = s.board[mv.r][mv.c];
+    let cap = s.board[mv.r2][mv.c2];
+    if (mv.ep) { cap = s.board[mv.r][mv.c2]; s.board[mv.r][mv.c2] = null; }
+    if (cap) {
+      const ht = cap.fromPawn ? 'CP' : cap.t;
+      s.hands[st.turn][ht] = (s.hands[st.turn][ht] || 0) + 1;
+    }
+    s.board[mv.r][mv.c] = null;
+    pc.moved = true;
+    if (mv.promote) pc.p = true;
+    if (mv.promoteTo) { pc.t = mv.promoteTo; pc.fromPawn = true; }
+    if (mv.dbl) s.ep = { r: mv.r + dirOf(st.turn), c: mv.c, o: st.turn };
+    if (mv.castle) {
+      if (mv.castle === 'r') { s.board[0][5] = s.board[0][8]; s.board[0][8] = null; s.board[0][5].moved = true; }
+      else { s.board[0][3] = s.board[0][0]; s.board[0][0] = null; s.board[0][3].moved = true; }
+    }
+    s.board[mv.r2][mv.c2] = pc;
+  }
+  s.turn = opp(st.turn);
+  s.lastMove = { drop: !!mv.drop, piece: mv.piece || null, r: mv.drop ? null : mv.r, c: mv.drop ? null : mv.c, r2: mv.r2, c2: mv.c2 };
+  return s;
+}
+
+function isLegal(st, mv) {
+  const s = apply(st, mv);
+  const k = findKing(s, st.turn);
+  if (!k) return false;
+  return !attacked(s, opp(st.turn), k.r, k.c);
+}
+
+function dropOk(st, o, type, r, c) {
+  const d = dirOf(o);
+  if (type === 'FU') {
+    for (let rr = 0; rr < 9; rr++) {
+      const p = st.board[rr][c];
+      if (p && p.o === o && p.t === 'FU' && !p.p) return false;
+    }
+    if (r === LAST[o]) return false;
+  }
+  if (type === 'KY' && r === LAST[o]) return false;
+  if (type === 'KE' && (r === LAST[o] || r === LAST[o] - d)) return false;
+  if (type === 'CP' && (r === LAST[o] || r === BACK[o])) return false;
+  return true;
+}
+
+function dropList(st, o) {
+  const out = [];
+  for (const type in st.hands[o]) {
+    if (st.hands[o][type] <= 0) continue;
+    for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) {
+      if (st.board[r][c]) continue;
+      if (!dropOk(st, o, type, r, c)) continue;
+      out.push({ drop: true, piece: type, r2: r, c2: c });
+    }
+  }
+  return out;
+}
+
+function expandPromo(st, m, p) {
+  const o = p.o, d = dirOf(o);
+  if (m.castle) return [m];
+  if (SHOGI_PROMOTABLE.indexOf(p.t) >= 0 && !p.p && (inZone(o, m.r) || inZone(o, m.r2))) {
+    let must = false;
+    if (p.t === 'FU' || p.t === 'KY') must = (m.r2 === LAST[o]);
+    if (p.t === 'KE') must = (m.r2 === LAST[o] || m.r2 === LAST[o] - d);
+    const out = [Object.assign({}, m, { promote: true })];
+    if (!must) out.push(Object.assign({}, m));
+    return out;
+  }
+  if (p.t === 'CP' && m.r2 === LAST[o]) {
+    return ['CQ', 'CR', 'CB', 'CN'].map(t => Object.assign({}, m, { promoteTo: t }));
+  }
+  return [m];
+}
+
+function allMoves(st, forMateTest) {
+  const o = st.turn, list = [];
+  for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) {
+    const p = st.board[r][c];
+    if (!p || p.o !== o) continue;
+    for (const m of pieceMoves(st, r, c, false)) {
+      for (const v of expandPromo(st, m, p)) list.push(v);
+    }
+  }
+  for (const dm of dropList(st, o)) list.push(dm);
+  const legal = list.filter(m => isLegal(st, m));
+  if (forMateTest) return legal;
+  return legal.filter(m => !(m.drop && (m.piece === 'FU' || m.piece === 'CP') && isDropMate(st, m)));
+}
+
+function isDropMate(st, mv) {
+  const s = apply(st, mv);
+  if (!inCheck(s, s.turn)) return false;
+  return allMoves(s, true).length === 0;
+}
+
+function statusOf(st, legal) {
+  const chk = inCheck(st, st.turn);
+  if (legal.length === 0) return chk ? 'mate' : 'stalemate';
+  return chk ? 'check' : 'ok';
+}
+
+if (typeof module !== 'undefined') {
+  module.exports = { initState, pieceMoves, allMoves, apply, isLegal, inCheck, statusOf, findKing, attacked, dropOk, opp, LAST };
+}
+// ---- UI layer with i18n ----
+const GLYPH = { CK: '\u265A', CQ: '\u265B', CR: '\u265C', CB: '\u265D', CN: '\u265E', CP: '\u265F' };
+const KANJI = { FU: '\u6B69', KY: '\u9999', KE: '\u6842', GI: '\u9280', KI: '\u91D1', OU: '\u7389', KA: '\u89D2', HI: '\u98DB' };
+const PKANJI = { FU: '\u3068', KY: '\u674F', KE: '\u572D', GI: '\u5168', KA: '\u99AC', HI: '\u9F8D' };
+const LETTER = { FU: 'P', KY: 'L', KE: 'N', GI: 'S', KI: 'G', OU: 'K', KA: 'B', HI: 'R' };
+const PLETTER = { FU: '+P', KY: '+L', KE: '+N', GI: '+S', KA: '+B', HI: '+R' };
+const HAND_ORDER = ['HI', 'KA', 'KI', 'GI', 'KE', 'KY', 'FU', 'CQ', 'CR', 'CB', 'CN', 'CP'];
+
+const I18N = {
+  ja: {
+    htmlLang: 'ja',
+    title: '\u30B7\u30E7\u30FC\u30C1\u30A7\u30B9',
+    subtitle: '\u5C06\u68CB \u00D7 \u30C1\u30A7\u30B9',
+    langBtn: 'English',
+    undo: '\u5F85\u3063\u305F',
+    reset: '\u521D\u3081\u304B\u3089',
+    trayC: '\u30C1\u30A7\u30B9\u5074 \u99D2\u53F0',
+    trayS: '\u5C06\u68CB\u5074 \u99D2\u53F0',
+    turnS: '\u5C06\u68CB\u5074\u306E\u624B\u756A',
+    turnC: '\u30C1\u30A7\u30B9\u5074\u306E\u624B\u756A',
+    winS: '\u5C06\u68CB\u5074\u306E\u52DD\u3061',
+    winC: '\u30C1\u30A7\u30B9\u5074\u306E\u52DD\u3061',
+    sideS: '\u5C06\u68CB\u5074',
+    sideC: '\u30C1\u30A7\u30B9\u5074',
+    check: '\u738B\u624B',
+    ply: n => n + '\u624B\u76EE',
+    none: '\u306A\u3057',
+    promoQ: '\u6210\u308A\u307E\u3059\u304B\uFF1F',
+    promoYes: '\u6210\u308B',
+    promoNo: '\u6210\u3089\u305A',
+    pawnPromo: '\u30DD\u30FC\u30F3\u306E\u6607\u683C\u5148\u3092\u9078\u3093\u3067\u304F\u3060\u3055\u3044',
+    mate: '\u8A70\u307F',
+    stalemate: '\u30B9\u30C6\u30A4\u30EB\u30E1\u30A4\u30C8',
+    mateSub: (w, n) => w + '\u306E\u52DD\u3061\u3067\u3059\uFF08' + n + '\u624B\uFF09',
+    staleSub: (w, n) => '\u624B\u756A\u5074\u306B\u5408\u6CD5\u624B\u304C\u306A\u304F\u3001' + w + '\u306E\u52DD\u3061\u3067\u3059\uFF08' + n + '\u624B\uFF09',
+    again: '\u3082\u3046\u4E00\u5C40',
+    review: '\u76E4\u9762\u3092\u898B\u308B',
+    legend1: '\u30C1\u30A7\u30B9\u8ECD\uFF08\u4E0A\u30FB\u9006\u5411\u304D\u99D2\uFF09',
+    legend2: '\u5C06\u68CB\u8ECD\uFF08\u4E0B\uFF09',
+    legend3: '\u6FC3\u3044\u5E2F = \u6210\u308A\u30BE\u30FC\u30F3',
+    rulesSummary: '\u30EB\u30FC\u30EB\u6982\u8981',
+    rules1: '9\u00D79\u76E4\u3067\u5C06\u68CB\u8ECD\u3068\u30C1\u30A7\u30B9\u8ECD\u304C\u5BFE\u6226\u3057\u307E\u3059\uFF08\u5C06\u68CB\u5074\u304C\u5148\u624B\uFF09\u3002\u5404\u99D2\u306F\u672C\u6765\u306E\u52D5\u304D\u306E\u307E\u307E\u3002\u30C1\u30A7\u30B9\u30DD\u30FC\u30F3\u306E\u521D\u52D52\u30DE\u30B9\u30FB\u30A2\u30F3\u30D1\u30C3\u30B5\u30F3\u30FB\u30AD\u30E3\u30B9\u30EA\u30F3\u30B0\u3082\u6709\u52B9\u3067\u3059\u3002',
+    rules2: '\u53D6\u3063\u305F\u99D2\u306F\u53D6\u3063\u305F\u5074\u306E\u6301\u3061\u99D2\u306B\u306A\u308A\u3001\u305D\u306E\u99D2\u306E\u52D5\u304D\u306E\u307E\u307E\u81EA\u8ECD\u3068\u3057\u3066\u6253\u3066\u307E\u3059\uFF08\u30AF\u30EC\u30A4\u30B8\u30FC\u30CF\u30A6\u30B9\u65B9\u5F0F\uFF09\u3002\u4E8C\u6B69\uFF08\u6B69\u306E\u307F\uFF09\u3001\u884C\u304D\u6240\u306E\u306A\u3044\u99D2\u3001\u6253\u3061\u6B69\u8A70\u3081\u30FB\u6253\u3061\u30DD\u30FC\u30F3\u8A70\u3081\u306F\u7981\u6B62\u3002\u30C1\u30A7\u30B9\u30DD\u30FC\u30F3\u306F\u81EA\u9663\u6700\u4E0B\u6BB5\u3068\u6575\u9663\u6700\u7D42\u6BB5\u306B\u306F\u6253\u3066\u307E\u305B\u3093\u3002',
+    rules3: '\u5C06\u68CB\u51FA\u8EAB\u306E\u99D2\u306F\u6575\u96633\u6BB5\u3067\u6210\u308C\u307E\u3059\uFF08\u6210\u99D2\u306F\u53D6\u3089\u308C\u308B\u3068\u5143\u306B\u623B\u308B\uFF09\u3002\u30C1\u30A7\u30B9\u30DD\u30FC\u30F3\u306F\u6700\u7D42\u6BB5\u3067\u4EFB\u610F\u306E\u30C1\u30A7\u30B9\u99D2\u306B\u6607\u683C\u3057\u3001\u53D6\u3089\u308C\u308B\u3068\u30DD\u30FC\u30F3\u306B\u623B\u308A\u307E\u3059\u3002\u30B9\u30C6\u30A4\u30EB\u30E1\u30A4\u30C8\u306F\u624B\u756A\u5074\u306E\u8CA0\u3051\u3002\u7389\uFF0F\u30AD\u30F3\u30B0\u3092\u8A70\u307E\u305B\u305F\u3089\u52DD\u3061\u3067\u3059\u3002',
+    names: { FU: '\u6B69', KY: '\u9999\u8ECA', KE: '\u6842\u99AC', GI: '\u9280', KI: '\u91D1', KA: '\u89D2', HI: '\u98DB\u8ECA',
+      CQ: '\u30AF\u30A4\u30FC\u30F3', CR: '\u30EB\u30FC\u30AF', CB: '\u30D3\u30B7\u30E7\u30C3\u30D7', CN: '\u30CA\u30A4\u30C8', CP: '\u30DD\u30FC\u30F3' }
+  },
+  en: {
+    htmlLang: 'en',
+    title: 'ShoChess',
+    subtitle: 'Shogi \u00D7 Chess',
+    langBtn: '\u65E5\u672C\u8A9E',
+    undo: 'Undo',
+    reset: 'New game',
+    trayC: 'Chess side \u2014 in hand',
+    trayS: 'Shogi side \u2014 in hand',
+    turnS: 'Shogi side to move',
+    turnC: 'Chess side to move',
+    winS: 'Shogi side wins',
+    winC: 'Chess side wins',
+    sideS: 'The shogi side',
+    sideC: 'The chess side',
+    check: 'Check',
+    ply: n => 'Move ' + n,
+    none: 'empty',
+    promoQ: 'Promote this piece?',
+    promoYes: 'Promote',
+    promoNo: 'Keep',
+    pawnPromo: 'Choose a piece for pawn promotion',
+    mate: 'Checkmate',
+    stalemate: 'Stalemate',
+    mateSub: (w, n) => w + ' wins (' + n + ' moves)',
+    staleSub: (w, n) => 'No legal moves for the side to move \u2014 ' + w + ' wins (' + n + ' moves)',
+    again: 'Play again',
+    review: 'View board',
+    legend1: 'Chess army (top, reversed pieces)',
+    legend2: 'Shogi army (bottom)',
+    legend3: 'Shaded rows = promotion zone',
+    rulesSummary: 'Rules',
+    rules1: 'A shogi army and a chess army face off on a 9\u00D79 board; the shogi side moves first. Every piece keeps its native movement, including the chess pawn\u2019s two-square first step, en passant, and castling.',
+    rules2: 'Captured pieces join the captor\u2019s hand and can be dropped onto any empty square, keeping their own movement (crazyhouse style). Restrictions: no two unpromoted shogi pawns on the same file (nifu), no drops onto squares from which a piece could never move, and no delivering checkmate by dropping a shogi pawn or chess pawn. Chess pawns cannot be dropped on either back rank.',
+    rules3: 'Shogi-origin pieces may promote in the far three ranks; promoted pieces revert when captured. A chess pawn promotes on the final rank to any chess piece and reverts to a pawn when captured. Stalemate is a loss for the player to move. Checkmate the enemy king to win. Shogi piece letters: P pawn, L lance, N knight, S silver, G gold, K king, B bishop, R rook; a red + marks a promoted piece.',
+    names: { FU: 'Pawn (shogi)', KY: 'Lance', KE: 'Knight (shogi)', GI: 'Silver general', KI: 'Gold general', KA: 'Bishop (shogi)', HI: 'Rook (shogi)',
+      CQ: 'Queen', CR: 'Rook', CB: 'Bishop', CN: 'Knight', CP: 'Pawn' }
+  }
+};
+
+let lang = (typeof navigator !== 'undefined' && (navigator.language || '').toLowerCase().indexOf('ja') === 0) ? 'ja' : 'en';
+function T() { return I18N[lang]; }
+
+let state = initState();
+let history = [];
+let legalCache = allMoves(state);
+let selected = null;   // {r,c} or {dropType}
+let pending = null;    // {variants:[...]}
+
+const boardEl = document.getElementById('board');
+const overlayEl = document.getElementById('overlay');
+const dialogEl = document.getElementById('dialog');
+
+function isChessType(t) { return t.charAt(0) === 'C'; }
+
+function wedgeLabel(p) {
+  if (lang === 'ja') return { text: p.p ? PKANJI[p.t] : KANJI[p.t], latin: false };
+  return { text: p.p ? PLETTER[p.t] : LETTER[p.t], latin: true };
+}
+
+function pieceHTML(p) {
+  if (isChessType(p.t)) {
+    return '<span class="glyph ' + (p.o === 'c' ? 'oc' : 'os') + '">' + GLYPH[p.t] + '</span>';
+  }
+  const w = wedgeLabel(p);
+  return '<div class="wedge ' + (p.o === 'c' ? 'oc' : 'os') + '"><span class="kanji' +
+    (w.latin ? ' lt' : '') + (p.p ? ' pro' : '') + '">' + w.text + '</span></div>';
+}
+
+function chipIcon(t) {
+  if (isChessType(t)) return '<span class="minipiece">' + GLYPH[t] + '</span>';
+  const label = lang === 'ja' ? KANJI[t] : LETTER[t];
+  return '<span class="miniwedge">' + label + '</span>';
+}
+
+function targetsFor(sel) {
+  if (!sel) return [];
+  if (sel.dropType) return legalCache.filter(m => m.drop && m.piece === sel.dropType);
+  return legalCache.filter(m => !m.drop && m.r === sel.r && m.c === sel.c);
+}
+
+function applyStatic() {
+  const t = T();
+  document.documentElement.lang = t.htmlLang;
+  document.getElementById('titleText').textContent = t.title;
+  document.getElementById('subTitle').textContent = t.subtitle;
+  document.getElementById('langBtn').textContent = t.langBtn;
+  document.getElementById('undoBtn').textContent = t.undo;
+  document.getElementById('resetBtn').textContent = t.reset;
+  document.getElementById('checkBadge').textContent = t.check;
+  document.getElementById('legend1').textContent = t.legend1;
+  document.getElementById('legend2').textContent = t.legend2;
+  document.getElementById('legend3').textContent = t.legend3;
+  document.getElementById('rulesSummary').textContent = t.rulesSummary;
+  document.getElementById('rules1').textContent = t.rules1;
+  document.getElementById('rules2').textContent = t.rules2;
+  document.getElementById('rules3').textContent = t.rules3;
+}
+
+function render() {
+  const t = T();
+  const tgts = targetsFor(selected);
+  boardEl.innerHTML = '';
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      const cell = document.createElement('button');
+      cell.className = 'cell';
+      if (r <= 2 || r >= 6) cell.classList.add('zone');
+      const p = state.board[r][c];
+      if (p) cell.innerHTML = pieceHTML(p);
+      if (state.lastMove && ((state.lastMove.r === r && state.lastMove.c === c) || (state.lastMove.r2 === r && state.lastMove.c2 === c))) {
+        cell.classList.add('last');
+      }
+      if (selected && !selected.dropType && selected.r === r && selected.c === c) cell.classList.add('sel');
+      const hit = tgts.some(m => m.r2 === r && m.c2 === c);
+      if (hit) cell.classList.add(p ? 'cap' : 'hint');
+      cell.addEventListener('click', () => onCell(r, c));
+      boardEl.appendChild(cell);
+    }
+  }
+  renderTray('c', document.getElementById('trayC'), t.trayC);
+  renderTray('s', document.getElementById('trayS'), t.trayS);
+
+  const chk = inCheck(state, state.turn);
+  document.getElementById('checkBadge').classList.toggle('on', chk && !state.result);
+  document.getElementById('turnMark').textContent = state.turn === 's' ? '\u25B2' : '\u265F';
+  document.getElementById('turnText').textContent = state.result
+    ? (state.result.winner === 's' ? t.winS : t.winC)
+    : (state.turn === 's' ? t.turnS : t.turnC);
+  document.getElementById('plyText').textContent = t.ply(history.length);
+  document.getElementById('undoBtn').disabled = history.length === 0;
+}
+
+function renderTray(o, el, label) {
+  el.innerHTML = '<span class="label">' + label + '</span>';
+  const hand = state.hands[o];
+  const keys = HAND_ORDER.filter(k => hand[k] > 0);
+  if (keys.length === 0) {
+    el.insertAdjacentHTML('beforeend', '<span class="empty">' + T().none + '</span>');
+    return;
+  }
+  for (const tp of keys) {
+    const chip = document.createElement('button');
+    chip.className = 'chip';
+    const mine = (state.turn === o) && !state.result;
+    if (mine) chip.classList.add('mine');
+    if (selected && selected.dropType === tp && state.turn === o) chip.classList.add('sel');
+    chip.disabled = !mine;
+    chip.innerHTML = chipIcon(tp) + '<span class="cnt">\u00D7' + hand[tp] + '</span>';
+    chip.title = T().names[tp];
+    chip.setAttribute('aria-label', T().names[tp] + ' \u00D7' + hand[tp]);
+    chip.addEventListener('click', () => {
+      if (state.result || pending) return;
+      selected = (selected && selected.dropType === tp) ? null : { dropType: tp };
+      render();
+    });
+    el.appendChild(chip);
+  }
+}
+
+function onCell(r, c) {
+  if (state.result || pending) return;
+  const tgts = targetsFor(selected);
+  const cand = tgts.filter(m => m.r2 === r && m.c2 === c);
+  if (cand.length === 1) { commit(cand[0]); return; }
+  if (cand.length > 1) { askPromotion(cand); return; }
+  const p = state.board[r][c];
+  if (p && p.o === state.turn) {
+    if (selected && !selected.dropType && selected.r === r && selected.c === c) selected = null;
+    else selected = { r, c };
+  } else {
+    selected = null;
+  }
+  render();
+}
+
+function askPromotion(variants) {
+  const t = T();
+  pending = { variants };
+  if (variants[0].promoteTo) {
+    let html = '<div class="q">' + t.pawnPromo + '</div><div class="opts">';
+    for (const v of variants) {
+      html += '<button class="opt" data-pt="' + v.promoteTo + '"><span class="big">' + GLYPH[v.promoteTo] + '</span>' + t.names[v.promoteTo] + '</button>';
+    }
+    html += '</div>';
+    dialogEl.innerHTML = html;
+    dialogEl.querySelectorAll('.opt').forEach(b => b.addEventListener('click', () => {
+      const v = pending.variants.find(x => x.promoteTo === b.dataset.pt);
+      closeDialog(); commit(v);
+    }));
+  } else {
+    dialogEl.innerHTML = '<div class="q">' + t.promoQ + '</div><div class="opts">' +
+      '<button class="opt" id="optYes">' + t.promoYes + '</button>' +
+      '<button class="opt" id="optNo">' + t.promoNo + '</button></div>';
+    document.getElementById('optYes').addEventListener('click', () => {
+      const v = pending.variants.find(x => x.promote); closeDialog(); commit(v);
+    });
+    document.getElementById('optNo').addEventListener('click', () => {
+      const v = pending.variants.find(x => !x.promote); closeDialog(); commit(v);
+    });
+  }
+  overlayEl.classList.add('on');
+}
+
+function closeDialog() {
+  pending = null;
+  overlayEl.classList.remove('on');
+}
+
+function commit(mv) {
+  history.push(state);
+  state = apply(state, mv);
+  selected = null;
+  legalCache = allMoves(state);
+  const status = statusOf(state, legalCache);
+  if (status === 'mate' || status === 'stalemate') {
+    state.result = { winner: opp(state.turn), reason: status };
+  }
+  render();
+  if (state.result) showResult(status);
+}
+
+function showResult(status) {
+  const t = T();
+  const w = state.result.winner === 's' ? t.sideS : t.sideC;
+  const title = status === 'mate' ? t.mate : t.stalemate;
+  const sub = status === 'mate' ? t.mateSub(w, history.length) : t.staleSub(w, history.length);
+  dialogEl.innerHTML = '<div class="q result-title">' + title + '</div>' +
+    '<div class="result-sub">' + sub + '</div>' +
+    '<div class="opts"><button class="opt" id="againBtn">' + t.again + '</button>' +
+    '<button class="opt" id="reviewBtn">' + t.review + '</button></div>';
+  overlayEl.classList.add('on');
+  document.getElementById('againBtn').addEventListener('click', () => { overlayEl.classList.remove('on'); reset(); });
+  document.getElementById('reviewBtn').addEventListener('click', () => { overlayEl.classList.remove('on'); });
+}
+
+function reset() {
+  state = initState();
+  history = [];
+  selected = null;
+  pending = null;
+  legalCache = allMoves(state);
+  overlayEl.classList.remove('on');
+  render();
+}
+
+document.getElementById('undoBtn').addEventListener('click', () => {
+  if (history.length === 0) return;
+  state = history.pop();
+  selected = null;
+  pending = null;
+  overlayEl.classList.remove('on');
+  legalCache = allMoves(state);
+  render();
+});
+document.getElementById('resetBtn').addEventListener('click', reset);
+document.getElementById('langBtn').addEventListener('click', () => {
+  lang = lang === 'ja' ? 'en' : 'ja';
+  applyStatic();
+  render();
+});
+
+applyStatic();
+render();
+</script>
+</body>
+</html>
