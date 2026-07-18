@@ -4,7 +4,7 @@
 
 # ShowChess Game
 
-Are they stronger at Shogi? Or at chess? Which soldiers are stronger?
+Are Shogi pawns stronger, or are chess pawns stronger? Which one is stronger?
 
 A shogi army and a chess army face off on a 9×9 board; the shogi side moves first. Every piece keeps its native movement, including the chess pawn’s two-square first step, en passant, and castling.
 
