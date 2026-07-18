@@ -2,6 +2,8 @@
 
 # ShowChess Game
 
+Are they stronger at Shogi? Or at chess? Which soldiers are stronger?
+
 A shogi army and a chess army face off on a 9×9 board; the shogi side moves first. Every piece keeps its native movement, including the chess pawn’s two-square first step, en passant, and castling.
 
 Captured pieces join the captor’s hand and can be dropped onto any empty square, keeping their own movement (crazyhouse style). Restrictions: no two unpromoted shogi pawns on the same file (nifu), no drops onto squares from which a piece could never move, and no delivering checkmate by dropping a shogi pawn or chess pawn. Chess pawns cannot be dropped on either back rank.
