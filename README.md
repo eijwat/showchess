@@ -1,3 +1,5 @@
+<img src="sc.png" alt="画像" width="300">
+
 # ShowChess Game
 
 A shogi army and a chess army face off on a 9×9 board; the shogi side moves first. Every piece keeps its native movement, including the chess pawn’s two-square first step, en passant, and castling.
